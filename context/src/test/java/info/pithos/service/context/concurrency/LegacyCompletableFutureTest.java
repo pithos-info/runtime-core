@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.concurrent.*;
 
+import info.pithos.runtime.core.context.AsyncTaskQueue;
 import info.pithos.runtime.core.context.ServiceConfigs;
 import info.pithos.runtime.core.context.SystemContext;
 import info.pithos.runtime.core.log.ServiceLogger;
@@ -35,6 +36,7 @@ class LegacyCompletableFutureTest {
             @Override public boolean shutdown(long ms) { return true; }
             @Override public ConfigMap getConfigMap() { return null; }
             @Override public ServiceConfigs getServiceConfigs() { return null; }
+            @Override public AsyncTaskQueue getTaskQueue() { return null; }
         };
     }
 

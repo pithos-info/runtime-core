@@ -1,8 +1,11 @@
 package info.pithos.runtime.core.context;
 
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import info.pithos.runtime.core.log.ServiceLogger;
 import info.pithos.runtime.core.log.ServiceLoggerImpl;
 import info.pithos.runtime.model.config.Config.ConfigMap;
@@ -14,11 +17,15 @@ import info.pithos.runtime.model.config.Config.ConfigMap;
  *
  */
 public class SystemContextImpl implements SystemContext {
+	private static final int TASK_QUEUE_CAPACITY = 10_000;
+
 	private final String serviceName;
 	private final ConfigMap configMap;
 	private final ServiceConfigs serviceConfigs;
 	private final ForkJoinPool forkJoinExecutor;
 	private final ScheduledThreadPoolExecutor scheduledExecutor;
+	private final ThreadPoolExecutor taskExecutor;
+	private final AsyncTaskQueueImpl taskQueue;
 	private final ContextCreator creator;
 	private final ServiceLogger logger;
 
@@ -50,6 +57,21 @@ public class SystemContextImpl implements SystemContext {
 		this.forkJoinExecutor = new ForkJoinPool(poolSize);
 		this.scheduledExecutor = new ScheduledThreadPoolExecutor(poolSize);
 
+		int taskThreads = Math.max(2, poolSize / 2);
+		AtomicInteger taskIdx = new AtomicInteger();
+		this.taskExecutor = new ThreadPoolExecutor(
+				taskThreads, taskThreads,
+				60L, TimeUnit.SECONDS,
+				new LinkedBlockingQueue<>(TASK_QUEUE_CAPACITY),
+				r -> {
+					Thread t = new Thread(r, "bg-task-" + taskIdx.getAndIncrement());
+					t.setDaemon(true);
+					return t;
+				},
+				new ThreadPoolExecutor.DiscardPolicy()
+		);
+		this.taskQueue = new AsyncTaskQueueImpl(this.taskExecutor);
+
 		this.logger = new ServiceLoggerImpl();
 	}
 
@@ -76,6 +98,7 @@ public class SystemContextImpl implements SystemContext {
 	@Override
 	public boolean shutdown(long ms) {
 		try {
+			this.taskQueue.shutdown(ms, TimeUnit.MILLISECONDS).join();
 			this.forkJoinExecutor.awaitTermination(ms, TimeUnit.MILLISECONDS);
 			this.scheduledExecutor.awaitTermination(ms, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
@@ -94,5 +117,15 @@ public class SystemContextImpl implements SystemContext {
 	@Override
 	public ServiceConfigs getServiceConfigs() {
 		return this.serviceConfigs;
+	}
+
+	@Override
+	public AsyncTaskQueue getTaskQueue() {
+		return this.taskQueue;
+	}
+
+	/** Called by {@link ApplicationContextImpl} immediately after it is fully constructed. */
+	void wireApplicationContext(ApplicationContext ctx) {
+		this.taskQueue.setApplicationContext(ctx);
 	}
 }

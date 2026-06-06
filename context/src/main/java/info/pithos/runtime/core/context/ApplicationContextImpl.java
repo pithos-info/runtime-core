@@ -19,8 +19,9 @@ public class ApplicationContextImpl implements ApplicationContext {
 	 */
 	public ApplicationContextImpl(ContextCreator creator) {
 		this.systemContext = new SystemContextImpl(creator);
-		this.creator = creator;
+		((SystemContextImpl) this.systemContext).wireApplicationContext(this);
 
+		this.creator = creator;
 		Iterable<ServiceModule> serviceModules = this.creator.getInjectionModules(this);
 		this.initInjectionModules(serviceModules);
 		this.injector = Guice.createInjector(serviceModules);

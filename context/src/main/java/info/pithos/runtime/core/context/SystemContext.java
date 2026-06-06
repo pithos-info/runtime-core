@@ -48,5 +48,10 @@ public interface SystemContext {
 	/**
 	 * @return
 	 */
-	ServiceConfigs getServiceConfigs();	
+	ServiceConfigs getServiceConfigs();
+
+	/**
+	 * @return
+	 */
+	AsyncTaskQueue getTaskQueue();
 }
