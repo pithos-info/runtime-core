@@ -12,7 +12,7 @@ import info.pithos.runtime.core.context.ServiceConfigs;
 import info.pithos.runtime.core.context.SystemContext;
 import info.pithos.runtime.core.log.ServiceLogger;
 import info.pithos.runtime.model.config.Config.ConfigMap;
-import info.pithos.runtime.model.protocol.http.RequestContextOuterClass.LogLevelType;
+import info.pithos.runtime.model.protocol.http.Context.LogLevelType;
 
 import java.util.concurrent.ForkJoinPool;
 

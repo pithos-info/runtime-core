@@ -1,8 +1,8 @@
 package info.pithos.runtime.core.log;
 
 import org.slf4j.Logger;
-import info.pithos.runtime.model.protocol.http.RequestContextOuterClass.LogLevelType;
-import info.pithos.runtime.model.protocol.http.RequestContextOuterClass.RequestContext;
+import info.pithos.runtime.model.protocol.http.Context.LogLevelType;
+import info.pithos.runtime.model.protocol.http.Context.RequestContext;
 
 /**
  * @author svarma

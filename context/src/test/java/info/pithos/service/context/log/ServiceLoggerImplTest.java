@@ -12,9 +12,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import info.pithos.runtime.model.protocol.http.RequestContextOuterClass.AuthContext;
-import info.pithos.runtime.model.protocol.http.RequestContextOuterClass.LogLevelType;
-import info.pithos.runtime.model.protocol.http.RequestContextOuterClass.RequestContext;
+import info.pithos.runtime.model.protocol.http.Context.AuthContext;
+import info.pithos.runtime.model.protocol.http.Context.LogLevelType;
+import info.pithos.runtime.model.protocol.http.Context.RequestContext;
 
 @ExtendWith(MockitoExtension.class)
 class ServiceLoggerImplTest {
