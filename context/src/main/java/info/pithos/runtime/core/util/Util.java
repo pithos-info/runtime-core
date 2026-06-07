@@ -1,6 +1,6 @@
 package info.pithos.runtime.core.util;
 
-import info.pithos.runtime.model.protocol.http.Context.RequestContext;
+import info.pithos.runtime.model.protocol.Context.RequestContext;
 
 public class Util {
   public static String createKey(RequestContext requestContext, String key) {
