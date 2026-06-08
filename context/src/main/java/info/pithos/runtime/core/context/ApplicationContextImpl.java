@@ -3,6 +3,12 @@ package info.pithos.runtime.core.context;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
 /**
  * @author svarma
  *
@@ -10,21 +16,24 @@ import com.google.inject.Injector;
  *
  */
 public class ApplicationContextImpl implements ApplicationContext {
+
 	private final SystemContext systemContext;
 	private final ContextCreator creator;
 	private final Injector injector;
+	private final List<ServiceModule> modules;
 
-	/**
-	 * @param creator
-	 */
 	public ApplicationContextImpl(ContextCreator creator) {
 		this.systemContext = new SystemContextImpl(creator);
 		((SystemContextImpl) this.systemContext).wireApplicationContext(this);
 
 		this.creator = creator;
-		Iterable<ServiceModule> serviceModules = this.creator.getInjectionModules(this);
-		this.initInjectionModules(serviceModules);
-		this.injector = Guice.createInjector(serviceModules);
+
+		List<ServiceModule> moduleList = new ArrayList<>();
+		this.creator.getInjectionModules(this).forEach(moduleList::add);
+		this.modules = Collections.unmodifiableList(moduleList);
+
+		this.modules.forEach(ServiceModule::init);
+		this.injector = Guice.createInjector(this.modules);
 	}
 
 	@Override
@@ -32,21 +41,25 @@ public class ApplicationContextImpl implements ApplicationContext {
 		return this.injector;
 	}
 
-	/**
-	 * @param moduleClasses
-	 */
-	private Iterable<ServiceModule> initInjectionModules(Iterable<ServiceModule> serviceModules) {
-		serviceModules.forEach((module) -> {
-			// CompletableFuture.runAsync(() -> {
-			module.init();
-			// });
-		});
-
-		return serviceModules;
-	}
-
 	@Override
 	public SystemContext getSystemContext() {
 		return this.systemContext;
+	}
+
+	@Override
+	public CompletableFuture<Void> start(long timeout, TimeUnit unit) {
+		CompletableFuture<?>[] futures = modules.stream()
+			.map(m -> m.start(timeout, unit))
+			.toArray(CompletableFuture[]::new);
+		return CompletableFuture.allOf(futures);
+	}
+
+	@Override
+	public CompletableFuture<Void> shutdown(long timeout, TimeUnit unit) {
+		CompletableFuture<?>[] futures = modules.stream()
+			.map(m -> m.shutdown(timeout, unit))
+			.toArray(CompletableFuture[]::new);
+		return CompletableFuture.allOf(futures)
+			.whenComplete((v, ex) -> systemContext.shutdown(unit.toMillis(timeout)));
 	}
 }

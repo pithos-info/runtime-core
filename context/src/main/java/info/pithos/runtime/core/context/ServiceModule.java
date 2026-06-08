@@ -1,5 +1,7 @@
 package info.pithos.runtime.core.context;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.inject.AbstractModule;
@@ -27,14 +29,22 @@ public abstract class ServiceModule extends AbstractModule {
 		this.initialized = new AtomicBoolean();
 	}
 
-	/**
-	 * @return
-	 */
 	protected abstract boolean init();
 
 	/**
-	 * @return
+	 * Opens connections for all {@link ServiceLifeCycle} clients owned by this module.
+	 * Called by {@link ApplicationContext#start} after all modules have been init-ed.
+	 * Modules with no infrastructure clients must return {@code CompletableFuture.completedFuture(true)}.
 	 */
+	public abstract CompletableFuture<Boolean> start(long timeout, TimeUnit unit);
+
+	/**
+	 * Closes connections in the reverse order they were opened in {@link #start}.
+	 * Called by {@link ApplicationContext#shutdown} before executor pools are torn down.
+	 * Modules with no infrastructure clients must return {@code CompletableFuture.completedFuture(true)}.
+	 */
+	public abstract CompletableFuture<Boolean> shutdown(long timeout, TimeUnit unit);
+
 	protected ApplicationContext getApplicationContext() {
 		return this.context;
 	}
