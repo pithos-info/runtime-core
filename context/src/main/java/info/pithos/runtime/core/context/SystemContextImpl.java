@@ -1,5 +1,7 @@
 package info.pithos.runtime.core.context;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -123,6 +125,17 @@ public class SystemContextImpl implements SystemContext {
 	public AsyncTaskQueue getTaskQueue() {
 		return this.taskQueue;
 	}
+	@Override
+	public <T> CompletableFuture<T> submitAsync(Callable<T> task) {
+		return CompletableFuture.supplyAsync(() -> {
+			try {
+				return task.call();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}, this.getForkJoinExecutor());
+	}
+
 
 	/** Called by {@link ApplicationContextImpl} immediately after it is fully constructed. */
 	void wireApplicationContext(ApplicationContext ctx) {

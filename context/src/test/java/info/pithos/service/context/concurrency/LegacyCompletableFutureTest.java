@@ -37,6 +37,7 @@ class LegacyCompletableFutureTest {
             @Override public ConfigMap getConfigMap() { return null; }
             @Override public ServiceConfigs getServiceConfigs() { return null; }
             @Override public AsyncTaskQueue getTaskQueue() { return null; }
+            @Override public <T> CompletableFuture<T> submitAsync(Callable<T> task) { return null;}
         };
     }
 

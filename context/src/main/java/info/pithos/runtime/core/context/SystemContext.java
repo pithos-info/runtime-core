@@ -1,5 +1,7 @@
 package info.pithos.runtime.core.context;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -54,4 +56,6 @@ public interface SystemContext {
 	 * @return
 	 */
 	AsyncTaskQueue getTaskQueue();
+
+	<T> CompletableFuture<T> submitAsync(Callable<T> task);
 }

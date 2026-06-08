@@ -136,6 +136,22 @@ public abstract class ServiceModule extends AbstractModule {
 - Close connections in reverse start order.
 - Mirror `start()`: if start opens A then B, shutdown closes B then A.
 
+### Module with no infrastructure clients
+
+```java
+@Override
+public CompletableFuture<Boolean> start(long timeout, TimeUnit unit) {
+    return CompletableFuture.completedFuture(true);
+}
+
+@Override
+public CompletableFuture<Boolean> shutdown(long timeout, TimeUnit unit) {
+    return CompletableFuture.completedFuture(true);
+}
+```
+
+The explicit no-op is intentional. Making `start()` and `shutdown()` abstract means the compiler enforces that every module author consciously declares their lifecycle intent — silence is not allowed.
+
 ### Module with a single lifecycle client
 
 ```java
