@@ -16,9 +16,10 @@
 
 package info.pithos.runtime.core.log;
 
-import java.util.logging.Level;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import info.pithos.runtime.model.protocol.Context.LogLevelType;
 import info.pithos.runtime.model.protocol.Context.RequestContext;
 
@@ -28,40 +29,42 @@ import info.pithos.runtime.model.protocol.Context.RequestContext;
  */
 public class ServiceLoggerImpl implements ServiceLogger {
 
+  private final Function<Class<?>, Logger> loggerFactory;
+
+  public ServiceLoggerImpl() {
+    this.loggerFactory = LoggerFactory::getLogger;
+  }
+
+  ServiceLoggerImpl(Function<Class<?>, Logger> loggerFactory) {
+    this.loggerFactory = loggerFactory;
+  }
+
   @Override
-  public void logRequest(RequestContext requestContext, Logger logger, LogLevelType loglevel, String message,
+  public void logRequest(RequestContext requestContext, Class<?> clazz, LogLevelType loglevel, String message,
       Object... args) {
-    this.log(requestContext, logger, loglevel, null, null, message, args);
+    this.log(requestContext, clazz, loglevel, null, null, message, args);
   }
 
   @Override
-  public void logRequest(RequestContext requestContext, Logger logger, LogLevelType loglevel, Throwable throwable,
+  public void logRequest(RequestContext requestContext, Class<?> clazz, LogLevelType loglevel, Throwable throwable,
       String message, Object... args) {
-
-    this.log(requestContext, logger, loglevel, null, throwable, message, args);
+    this.log(requestContext, clazz, loglevel, null, throwable, message, args);
   }
 
   @Override
-  public void logRequest(RequestContext requestContext, Logger logger, LogLevelType loglevel, Exception exception,
+  public void logRequest(RequestContext requestContext, Class<?> clazz, LogLevelType loglevel, Exception exception,
       String message, Object... args) {
-    this.log(requestContext, logger, loglevel, exception, null, message, args);
+    this.log(requestContext, clazz, loglevel, exception, null, message, args);
   }
 
-  /**
-   * @param requestContext
-   * @param logger
-   * @param loglevel
-   * @param exception
-   * @param throwable
-   * @param message
-   * @param args
-   */
-  private void log(RequestContext requestContext, Logger logger, LogLevelType loglevel, Exception exception,
+  private void log(RequestContext requestContext, Class<?> clazz, LogLevelType loglevel, Exception exception,
       Throwable throwable, String message, Object... args) {
 
-    if (logger == null) {
-      throw new IllegalArgumentException("null logger");
+    if (clazz == null) {
+      throw new IllegalArgumentException("null clazz");
     }
+
+    Logger logger = loggerFactory.apply(clazz);
 
     LogLevelType useLoglevel = requestContext != null ? findLogLevel(logger, requestContext.getLogLevel(), loglevel)
         : loglevel;

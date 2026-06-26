@@ -16,7 +16,6 @@
 
 package info.pithos.runtime.core.log;
 
-import org.slf4j.Logger;
 import info.pithos.runtime.model.protocol.Context.LogLevelType;
 import info.pithos.runtime.model.protocol.Context.RequestContext;
 
@@ -26,46 +25,11 @@ import info.pithos.runtime.model.protocol.Context.RequestContext;
  */
 public interface ServiceLogger {
 
-  /**
-   * Log with requestId, enterpriseId, userId and at the log level set in request
-   * context.
-   * 
-   * 
-   * @param requestContext
-   * @param logger
-   * @param loglevel
-   * @param message
-   * @param args
-   */
-  void logRequest(RequestContext requestContext, Logger logger, LogLevelType loglevel, String message, Object... args);
+  void logRequest(RequestContext requestContext, Class<?> clazz, LogLevelType loglevel, String message, Object... args);
 
-  /**
-   * Log with requestId, enterpriseId, userId and at the log level set in request
-   * context.
-   * 
-   * 
-   * @param requestContext
-   * @param logger
-   * @param loglevel
-   * @param throwable
-   * @param message
-   * @param args
-   */
-  void logRequest(RequestContext requestContext, Logger logger, LogLevelType loglevel, Throwable throwable,
+  void logRequest(RequestContext requestContext, Class<?> clazz, LogLevelType loglevel, Throwable throwable,
       String message, Object... args);
 
-  /**
-   * Log with requestId, enterpriseId, userId and at the log level set in request
-   * context.
-   * 
-   * 
-   * @param requestContext
-   * @param logger
-   * @param loglevel
-   * @param exception
-   * @param message
-   * @param args
-   */
-  void logRequest(RequestContext requestContext, Logger logger, LogLevelType loglevel, Exception exception,
+  void logRequest(RequestContext requestContext, Class<?> clazz, LogLevelType loglevel, Exception exception,
       String message, Object... args);
 }

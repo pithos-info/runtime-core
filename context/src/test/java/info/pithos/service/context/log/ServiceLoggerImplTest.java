@@ -41,15 +41,15 @@ class ServiceLoggerImplTest {
 
     @BeforeEach
     void setUp() {
-        serviceLogger = new ServiceLoggerImpl();
+        serviceLogger = new ServiceLoggerImpl(clazz -> mockLogger);
     }
 
     // --- null guard ---
 
     @Test
-    void logRequest_nullLogger_throws() {
+    void logRequest_nullClazz_throws() {
         assertThrows(IllegalArgumentException.class,
-            () -> serviceLogger.logRequest(null, null, LogLevelType.ERROR, "msg"));
+            () -> serviceLogger.logRequest(null, (Class<?>) null, LogLevelType.ERROR, "msg"));
     }
 
     // --- message formatting ---
@@ -58,7 +58,7 @@ class ServiceLoggerImplTest {
 
     @Test
     void logRequest_nullRequestContext_logsPlainMessage() {
-        serviceLogger.logRequest(null, mockLogger, LogLevelType.ERROR, "plain message");
+        serviceLogger.logRequest(null, getClass(), LogLevelType.ERROR, "plain message");
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(mockLogger).error(captor.capture(), any(Object[].class));
@@ -69,10 +69,10 @@ class ServiceLoggerImplTest {
     void logRequest_withRequestContext_prependsRequestId() {
         RequestContext rc = RequestContext.newBuilder()
             .setRequestId("req-123")
-            .setLogLevel(LogLevelType.ERROR) // must set; NO_LOG default causes findLogLevel to return NO_LOG
+            .setLogLevel(LogLevelType.ERROR)
             .build();
 
-        serviceLogger.logRequest(rc, mockLogger, LogLevelType.ERROR, "something happened");
+        serviceLogger.logRequest(rc, getClass(), LogLevelType.ERROR, "something happened");
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(mockLogger).error(captor.capture(), any(Object[].class));
@@ -92,7 +92,7 @@ class ServiceLoggerImplTest {
                 .build())
             .build();
 
-        serviceLogger.logRequest(rc, mockLogger, LogLevelType.ERROR, "auth event");
+        serviceLogger.logRequest(rc, getClass(), LogLevelType.ERROR, "auth event");
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(mockLogger).error(captor.capture(), any(Object[].class));
@@ -108,7 +108,7 @@ class ServiceLoggerImplTest {
             .setLogLevel(LogLevelType.ERROR)
             .build();
 
-        serviceLogger.logRequest(rc, mockLogger, LogLevelType.ERROR, "no auth");
+        serviceLogger.logRequest(rc, getClass(), LogLevelType.ERROR, "no auth");
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(mockLogger).error(captor.capture(), any(Object[].class));
@@ -121,32 +121,31 @@ class ServiceLoggerImplTest {
 
     @Test
     void logRequest_errorLevel_callsLoggerError() {
-        serviceLogger.logRequest(null, mockLogger, LogLevelType.ERROR, "msg");
+        serviceLogger.logRequest(null, getClass(), LogLevelType.ERROR, "msg");
         verify(mockLogger).error(any(String.class), any(Object[].class));
     }
 
     @Test
     void logRequest_warnLevel_callsLoggerWarn() {
-        serviceLogger.logRequest(null, mockLogger, LogLevelType.WARN, "msg");
+        serviceLogger.logRequest(null, getClass(), LogLevelType.WARN, "msg");
         verify(mockLogger).warn(any(String.class), any(Object[].class));
     }
 
     @Test
     void logRequest_infoLevel_callsLoggerInfo() {
-        // requestContext=null → useLoglevel = loglevel directly; isInfoEnabled() not consulted
-        serviceLogger.logRequest(null, mockLogger, LogLevelType.INFO, "msg");
+        serviceLogger.logRequest(null, getClass(), LogLevelType.INFO, "msg");
         verify(mockLogger).info(any(String.class), any(Object[].class));
     }
 
     @Test
     void logRequest_debugLevel_callsLoggerDebug() {
-        serviceLogger.logRequest(null, mockLogger, LogLevelType.DEBUG, "msg");
+        serviceLogger.logRequest(null, getClass(), LogLevelType.DEBUG, "msg");
         verify(mockLogger).debug(any(String.class), any(Object[].class));
     }
 
     @Test
     void logRequest_traceLevel_callsLoggerTrace() {
-        serviceLogger.logRequest(null, mockLogger, LogLevelType.TRACE, "msg");
+        serviceLogger.logRequest(null, getClass(), LogLevelType.TRACE, "msg");
         verify(mockLogger).trace(any(String.class), any(Object[].class));
     }
 
@@ -159,7 +158,7 @@ class ServiceLoggerImplTest {
             .build();
         when(mockLogger.isInfoEnabled()).thenReturn(false);
 
-        serviceLogger.logRequest(rc, mockLogger, LogLevelType.INFO, "msg");
+        serviceLogger.logRequest(rc, getClass(), LogLevelType.INFO, "msg");
 
         verify(mockLogger).error(any(String.class), any(Object[].class));
         verify(mockLogger, never()).info(any(String.class), any(Object[].class));
@@ -173,7 +172,7 @@ class ServiceLoggerImplTest {
         when(mockLogger.isDebugEnabled()).thenReturn(false);
         when(mockLogger.isInfoEnabled()).thenReturn(true);
 
-        serviceLogger.logRequest(rc, mockLogger, LogLevelType.DEBUG, "msg");
+        serviceLogger.logRequest(rc, getClass(), LogLevelType.DEBUG, "msg");
 
         verify(mockLogger).info(any(String.class), any(Object[].class));
         verify(mockLogger, never()).debug(any(String.class), any(Object[].class));
@@ -187,26 +186,24 @@ class ServiceLoggerImplTest {
         when(mockLogger.isDebugEnabled()).thenReturn(false);
         when(mockLogger.isInfoEnabled()).thenReturn(false);
 
-        serviceLogger.logRequest(rc, mockLogger, LogLevelType.DEBUG, "msg");
+        serviceLogger.logRequest(rc, getClass(), LogLevelType.DEBUG, "msg");
 
         verify(mockLogger).error(any(String.class), any(Object[].class));
     }
 
     // --- exception / throwable overloads ---
-    // Production calls logger.error(msg, exception, args) → error(String, Object...) with 2 vararg elements.
-    // Using same(ex) typed as Exception gives a 3-arg verify that only matches error(String, Object...).
 
     @Test
     void logRequest_withException_passesExceptionToLogger() {
         Exception ex = new RuntimeException("test error");
-        serviceLogger.logRequest(null, mockLogger, LogLevelType.ERROR, ex, "msg");
+        serviceLogger.logRequest(null, getClass(), LogLevelType.ERROR, ex, "msg");
         verify(mockLogger).error(any(String.class), same(ex), any(Object[].class));
     }
 
     @Test
     void logRequest_withThrowable_passesThrowableToLogger() {
         Throwable t = new Error("fatal");
-        serviceLogger.logRequest(null, mockLogger, LogLevelType.ERROR, t, "msg");
+        serviceLogger.logRequest(null, getClass(), LogLevelType.ERROR, t, "msg");
         verify(mockLogger).error(any(String.class), same(t), any(Object[].class));
     }
 }
