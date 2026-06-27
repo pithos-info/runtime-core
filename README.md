@@ -254,6 +254,92 @@ Pool size = `availableProcessors × bootstrapConfigs.multiplier`. Set `multiplie
 
 ---
 
+## Logging
+
+Pithos services log through `ServiceLogger`, accessed from `SystemContext`. The rule is simple: the scope where you access `SystemContext` depends on whether `ApplicationContext` has been created yet.
+
+### Scope 1 — Bootstrap (main class only)
+
+Before `ApplicationContext` exists the only available context is `SystemContext`, which is created during `ApplicationContextImpl` construction. Use it only in the main entry-point class for pre-start and shutdown messages.
+
+```java
+// In the main class — before ctx.start()
+ApplicationContext ctx = new ApplicationContextImpl(new MyContextCreator(config));
+ctx.getSystemContext().getLogger()
+    .logRequest(null, MyApp.class, LogLevelType.INFO, "Starting {}", config.serviceName());
+
+ctx.start(30, TimeUnit.SECONDS).join();
+
+grpcServer.start();
+httpServer.start();
+
+Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+    httpServer.stop();
+    grpcServer.stop();
+    ctx.getSystemContext().getLogger()
+        .logRequest(null, MyApp.class, LogLevelType.INFO, "Shutting down");
+    ctx.shutdown(30, TimeUnit.SECONDS).join();
+}));
+```
+
+### Scope 2 — Runtime (all other classes)
+
+Everything outside the main class — handlers, servers, resources, services — must inject `ApplicationContext` and reach the logger through it. **Never inject `SystemContext` directly** into these classes; `SystemContext` is a bootstrap-only dependency.
+
+```java
+// In a handler, server, or any injected class
+import info.pithos.runtime.core.context.ApplicationContext;
+import info.pithos.runtime.model.protocol.Context.LogLevelType;
+
+public final class MyGrpcServer {
+
+    private final ApplicationContext applicationContext;
+
+    @Inject
+    public MyGrpcServer(ApplicationContext applicationContext, ...) {
+        this.applicationContext = applicationContext;
+    }
+
+    public void start() {
+        // ...
+        applicationContext.getSystemContext().getLogger()
+            .logRequest(null, MyGrpcServer.class, LogLevelType.INFO,
+                "gRPC server listening on :{}", config.grpcPort());
+    }
+}
+```
+
+### `ServiceLogger` signature
+
+```java
+// rc    — RequestContext from the active request; pass null for non-request logging
+// clazz — the calling class (replaces the per-class static Logger field)
+// level — LogLevelType from the protocol model (INFO, DEBUG, WARN, ERROR)
+void logRequest(RequestContext rc, Class<?> clazz, LogLevelType level,
+                String message, Object... args);
+
+// variants that capture Throwable / Exception
+void logRequest(RequestContext rc, Class<?> clazz, LogLevelType level,
+                Throwable throwable, String message, Object... args);
+void logRequest(RequestContext rc, Class<?> clazz, LogLevelType level,
+                Exception exception, String message, Object... args);
+```
+
+When `rc` is non-null the implementation prepends `[requestId enterpriseId userId]` to the message and respects any per-request log-level override set in `RequestContext.getLogLevel()` — enabling e2e debug tracing for a single request without changing the service log level.
+
+### What NOT to do
+
+```java
+// WRONG — static SLF4J logger, bypasses centralized log routing
+private static final Logger log = LoggerFactory.getLogger(MyClass.class);
+
+// WRONG — injecting SystemContext directly into a non-main class
+@Inject
+public MyHandler(SystemContext systemContext, ...) { ... }
+```
+
+---
+
 ## `ConfigMap`
 
 Single protobuf message carrying all infrastructure config for a service instance. Sections map directly to client configuration structs: `postgresConfigs`, `redisConfigs`, `keycloakOAuthConfigs`, `hashiCorpVaultConfigs`, `minioBlobStorageConfigs`, etc.
