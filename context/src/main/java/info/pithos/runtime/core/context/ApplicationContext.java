@@ -17,6 +17,7 @@
 package info.pithos.runtime.core.context;
 
 import com.google.inject.Injector;
+import info.pithos.runtime.core.metrics.MetricsCommitter;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +27,8 @@ public interface ApplicationContext {
 	SystemContext getSystemContext();
 
 	Injector getInjector();
+
+	MetricsCommitter getMetricsCommitter();
 
 	/**
 	 * Starts all registered service modules in parallel.

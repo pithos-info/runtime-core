@@ -16,8 +16,12 @@
 
 package info.pithos.runtime.core.context;
 
+import com.google.inject.Binding;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Key;
+import info.pithos.runtime.core.metrics.MetricsCommitter;
+import info.pithos.runtime.core.metrics.NoOpMetricsCommitter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,6 +41,7 @@ public class ApplicationContextImpl implements ApplicationContext {
 	private final ContextCreator creator;
 	private final Injector injector;
 	private final List<ServiceModule> modules;
+	private final MetricsCommitter metricsCommitter;
 
 	public ApplicationContextImpl(ContextCreator creator) {
 		this.systemContext = new SystemContextImpl(creator);
@@ -50,11 +55,19 @@ public class ApplicationContextImpl implements ApplicationContext {
 
 		this.modules.forEach(ServiceModule::init);
 		this.injector = Guice.createInjector(this.modules);
+
+		Binding<MetricsCommitter> binding = this.injector.getExistingBinding(Key.get(MetricsCommitter.class));
+		this.metricsCommitter = binding != null ? binding.getProvider().get() : NoOpMetricsCommitter.INSTANCE;
 	}
 
 	@Override
 	public Injector getInjector() {
 		return this.injector;
+	}
+
+	@Override
+	public MetricsCommitter getMetricsCommitter() {
+		return this.metricsCommitter;
 	}
 
 	@Override
