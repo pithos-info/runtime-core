@@ -1,0 +1,33 @@
+/*
+ * Copyright 2026 Pithos
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
+
+package info.pithos.runtime.core.metrics;
+
+import info.pithos.runtime.model.metrics.Metrics.MetricEvent;
+import info.pithos.runtime.model.protocol.Context.RequestContext;
+
+public interface MetricsCollector {
+
+    // Buffer a metric event for the current flush window.
+    // MS-unit events are buffered individually (raw table, requestId in key).
+    // All other units are accumulated into a per-key counter (counter table).
+    // Never blocks — never propagates errors.
+    void record(RequestContext rc, MetricEvent event);
+
+    // Drain all buffered events and counters to the backing MetricsCommitter.
+    // Called on the flush schedule and on shutdown.
+    void flush();
+}

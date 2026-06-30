@@ -39,9 +39,9 @@ public final class MetricEventBuilder {
 
     // ─── Tier routing ──────────────────────────────────────────────────────────
     //
-    // componentId set              → Tier 3  InfraMetricRaw
-    // step set + rc.journey set    → Tier 1  JourneyMetricRaw
-    // neither                      → Tier 2  ServiceMetricRaw
+    // componentId set              → Tier 3  InfraMetricRaw / InfraCounter
+    // step set + rc.journey set    → Tier 1  JourneyMetricRaw / JourneyCounter
+    // neither                      → Tier 2  ServiceMetricRaw / ServiceCounter
 
     public static boolean isInfraTier(MetricEvent event) {
         return !event.getComponentId().isEmpty();
@@ -51,7 +51,7 @@ public final class MetricEventBuilder {
         return !event.getStep().isEmpty() && !rc.getJourney().isEmpty();
     }
 
-    // ─── Builders ──────────────────────────────────────────────────────────────
+    // ─── Raw row builders (unit == MS only) ────────────────────────────────────
 
     public static JourneyMetricRaw toJourneyMetricRaw(RequestContext rc, SystemContext sc,
                                                        MetricEvent event) {
@@ -63,8 +63,8 @@ public final class MetricEventBuilder {
                         .setRequestId(rc.getRequestId())
                         .setStep(event.getStep())
                         .build())
-                .setOutcome(event.getOutcome())
-                .setMetricType(event.getMetricType())
+                .setMetric(event.getMetric())
+                .setUnit(event.getUnit())
                 .setValue(event.getValue())
                 .setTimestampMs(System.currentTimeMillis())
                 .setTraceId(rc.getTraceId())
@@ -85,8 +85,7 @@ public final class MetricEventBuilder {
                 .setProtocol(event.getProtocol())
                 .setMethod(event.getMethod())
                 .setMetric(event.getMetric())
-                .setMetricType(event.getMetricType())
-                .setOutcome(event.getOutcome())
+                .setUnit(event.getUnit())
                 .setValue(event.getValue())
                 .setTimestampMs(System.currentTimeMillis())
                 .setTraceId(rc.getTraceId())
@@ -105,8 +104,7 @@ public final class MetricEventBuilder {
                 .setInstanceId(instanceId(sc))
                 .setComponentProvider(event.getComponentProvider())
                 .setMetric(event.getMetric())
-                .setMetricType(event.getMetricType())
-                .setOutcome(event.getOutcome())
+                .setUnit(event.getUnit())
                 .setValue(event.getValue())
                 .setTimestampMs(System.currentTimeMillis())
                 .setTraceId(rc.getTraceId())
@@ -115,12 +113,12 @@ public final class MetricEventBuilder {
 
     // ─── Helpers ───────────────────────────────────────────────────────────────
 
-    private static String dateBucket() {
+    public static String dateBucket() {
         return DATE_BUCKET_FMT.format(LocalDateTime.now(ZoneOffset.UTC));
     }
 
     // Pod/node identity — HOSTNAME in k8s; falls back to serviceName until OTel wiring
-    private static String instanceId(SystemContext sc) {
+    public static String instanceId(SystemContext sc) {
         String hostname = System.getenv("HOSTNAME");
         return (hostname != null && !hostname.isEmpty()) ? hostname : sc.getServiceName();
     }
