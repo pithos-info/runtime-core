@@ -66,7 +66,7 @@ public final class MetricEventBuilder {
                 .setMetric(event.getMetric())
                 .setUnit(event.getUnit())
                 .setValue(event.getValue())
-                .setTimestampMs(System.currentTimeMillis())
+                .setUtcTimestampMs(System.currentTimeMillis())
                 .setTraceId(rc.getTraceId())
                 .build();
     }
@@ -87,7 +87,7 @@ public final class MetricEventBuilder {
                 .setMetric(event.getMetric())
                 .setUnit(event.getUnit())
                 .setValue(event.getValue())
-                .setTimestampMs(System.currentTimeMillis())
+                .setUtcTimestampMs(System.currentTimeMillis())
                 .setTraceId(rc.getTraceId())
                 .build();
     }
@@ -106,15 +106,24 @@ public final class MetricEventBuilder {
                 .setMetric(event.getMetric())
                 .setUnit(event.getUnit())
                 .setValue(event.getValue())
-                .setTimestampMs(System.currentTimeMillis())
+                .setUtcTimestampMs(System.currentTimeMillis())
                 .setTraceId(rc.getTraceId())
                 .build();
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────────
 
+    private static final DateTimeFormatter MINUTE_BUCKET_FMT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm");
+
+    // Hour-level bucket for percentile counter rows.
     public static String dateBucket() {
         return DATE_BUCKET_FMT.format(LocalDateTime.now(ZoneOffset.UTC));
+    }
+
+    // Minute-level bucket for count counter rows.
+    public static String minuteBucket() {
+        return MINUTE_BUCKET_FMT.format(LocalDateTime.now(ZoneOffset.UTC));
     }
 
     // Pod/node identity — HOSTNAME in k8s; falls back to serviceName until OTel wiring
